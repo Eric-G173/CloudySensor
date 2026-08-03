@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudySensor</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body>
@@ -12,49 +12,44 @@
   <h1>CloudySensor</h1>
 </header>
 
-
-<form class="city-form button-group" action="/submit" method="POST">
-    <label for="city" class="sr-only" >Enter a city</label>
-    <input type="text" id="city" name="city" placeholder="Enter a City">
+<form class="city-form button-group" id="weather-form">
+    <label for="city-input" class="sr-only">Enter a city</label>
+    <input type="text" id="city-input" name="city" placeholder="Enter a City">
     <button type="submit" class="index-btn">Submit</button>
 </form>
+
 <div class="city-form button-group">
     <button id="useLocation" class="index-btn" type="button">Use Current Location</button>
 </div>
 
+<p id="weather-error" style="color:red;"></p>
 
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
+<div class="weather-card" id="weather-card" style="display:none;">
+    <h1 class="weather-city" id="city-name"></h1>
 
-<script>
-document.getElementById("useLocation").addEventListener("click", function (event) {
-    event.preventDefault();
+    <div id="temp-scale-container" class="weather-temp">
+        <div id="temp-Buttons">
+            <button type="button" onclick="setScale('F')">F</button>
+            <button type="button" onclick="setScale('C')">C</button>
+        </div>
+        <div id="temp-scale-display">
+            <p id="temp">
+                <span id="temp-number"></span>
+                <span class="temp-scale"></span>
+            </p>
+        </div>
+    </div>
 
-    if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-    }
+    <div class="weather-highlow">
+        <span id="high"></span>
+        <span id="low"></span>
+    </div>
 
-    navigator.geolocation.getCurrentPosition(success, geoError);
-});
+    <div id="feels-like"></div>
 
-async function success(position) {
-    console.log("GOT LOCATION");
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
+    <p class="weather-condition" id="condition"></p>
+</div>
 
-    window.location.href = `/submit?lat=${lat}&lon=${lon}`;
-
-}
-
-function geoError() {
-    alert("Unable to retrieve your location.");
-}
-</script>
+<script src="{{ url_for('static', filename='weather.js') }}"></script>
 </body>
-
-
 </html>
-
-

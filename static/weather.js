@@ -39,18 +39,15 @@ const weatherDescriptions = {
     99: "Severe thunderstorm with hail"
 };
 
-let currentScale = "F"; //Default
-const dataEl = document.getElementById("weather-data");
+let currentScale = "F"; // Default
 
-const rawTemp = Number(dataEl.dataset.temp);
-const rawHigh = Number(dataEl.dataset.high);
-const rawLow = Number(dataEl.dataset.low);
-const rawFeels = Number(dataEl.dataset.feels);
-const conditionCode = Number(document.getElementById("condition").dataset.code);
-
-updateDisplay();
-
-
+// These now start at 0 and get filled in after the first successful search —
+// there's no server-rendered data to read on page load anymore.
+let rawTemp = 0;
+let rawHigh = 0;
+let rawLow = 0;
+let rawFeels = 0;
+let conditionCode = 0;
 
 function toF(c) { return c * (9/5) +32; }
 function toC(c) { return c }
@@ -84,4 +81,124 @@ document.querySelector(".temp-scale").textContent =
 function setScale(scale) {
     currentScale = scale;
     updateDisplay();
+}
+
+function showError(msg) {
+    document.getElementById("weather-error").textContent = msg;
+    document.getElementById("weather-card").style.display = "none";
+}
+
+// Mirrors the validation that used to run server-side in error_check()
+function validateCity(city) {
+    if (!city) return "Please enter a city.";
+    if (/\d/.test(city)) return "City cannot contain numbers.";
+    if (city.length > 100) return "City name too long.";
+    return null;
+}
+
+// ---------- Fetch weather for a typed city name ----------
+async function fetchWeatherByCity(city) {
+    document.getElementById("weather-error").textContent = "";
+    try {
+        const geoRes = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}`
+        );
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            showError(`Couldn't find "${city}".`);
+            return;
+        }
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+        await fetchWeatherByCoords(latitude, longitude, name, country);
+    } catch (err) {
+        showError("Something went wrong. Please try again.");
+        console.error(err);
+    }
+}
+
+// ---------- Fetch weather for known coordinates ----------
+async function fetchWeatherByCoords(lat, lon, displayName, displayCountry) {
+    try {
+        const weatherRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+            `&current=temperature,apparent_temperature,weather_code` +
+            `&daily=temperature_2m_max,temperature_2m_min`
+        );
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.error) {
+            showError(weatherData.reason);
+            return;
+        }
+
+        const { current, daily } = weatherData;
+        rawTemp = current.temperature;
+        rawHigh = daily.temperature_2m_max[0];
+        rawLow = daily.temperature_2m_min[0];
+        rawFeels = current.apparent_temperature;
+        conditionCode = current.weather_code;
+
+        document.getElementById("city-name").textContent =
+            displayCountry ? `${displayName}, ${displayCountry}` : (displayName || "");
+
+        document.getElementById("weather-card").style.display = "";
+        updateDisplay();
+    } catch (err) {
+        showError("Something went wrong. Please try again.");
+        console.error(err);
+    }
+}
+
+// ---------- Typed-city form ----------
+document.getElementById("weather-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const city = document.getElementById("city-input").value.trim();
+    const validationError = validateCity(city);
+    if (validationError) {
+        showError(validationError);
+        return;
+    }
+    fetchWeatherByCity(city);
+});
+
+// ---------- "Use Current Location" ----------
+document.getElementById("useLocation").addEventListener("click", function (event) {
+    event.preventDefault();
+
+    if (!navigator.geolocation) {
+        showError("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(geoSuccess, geoError);
+});
+
+async function geoSuccess(position) {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    try {
+        // The only step that still touches Flask: reverse-geocoding via Nominatim
+        // (cached + throttled server-side, as built earlier).
+        const res = await fetch(`/reverse-geocode?lat=${lat}&lon=${lon}`);
+        const data = await res.json();
+
+        if (data.error || !data.city) {
+            showError("Couldn't determine your city.");
+            return;
+        }
+
+        // We already have exact coordinates — no need to re-geocode the city
+        // name back into coordinates, just fetch weather directly.
+        await fetchWeatherByCoords(lat, lon, data.city, "");
+    } catch (err) {
+        showError("Something went wrong. Please try again.");
+        console.error(err);
+    }
+}
+
+function geoError() {
+    showError("Unable to retrieve your location.");
 }

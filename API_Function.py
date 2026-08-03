@@ -2,10 +2,6 @@ import requests
 import time
 import threading
 
-# ---------- Weather cache ----------
-CACHE = {}
-CACHE_TTL = 60 * 20  # 20 minutes — weather changes slowly enough for this
-
 # ---------- Geocode cache ----------
 GEOCODE_CACHE = {}
 GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7  # 1 week — a location's city name doesn't change
@@ -34,6 +30,11 @@ def _call_nominatim(url, params):
 
 
 def reverse_geocode(lat, lon):
+    # Defensive cast — Flask's request.values.get() returns strings, and round()
+    # requires a number. This makes the function safe regardless of caller.
+    lat = float(lat)
+    lon = float(lon)
+
     key = (round(lat, 2), round(lon, 2))  # buckets nearby coords into one cache entry
     now = time.time()
 
@@ -69,68 +70,9 @@ def reverse_geocode(lat, lon):
         return None
 
 
-def get_weather(city_name):
-    city = city_name
-    now = time.time()
-
-    if city in CACHE:
-        cached_data, timestamp = CACHE[city]
-        if now - timestamp < CACHE_TTL:
-            print("DEBUG: Returning cached weather for", city)
-            return cached_data
-
-    geo_location = f"https://geocoding-api.open-meteo.com/v1/search?name={city}"
-
-    try:
-        response = requests.get(geo_location, timeout=5).json()
-    except Exception as e:
-        print("DEBUG: geocoding request failed:", e)
-        return None
-
-    # Check for empty results BEFORE indexing into them.
-    # (Previously this indexed results[0] first and checked emptiness after,
-    # which would raise on any city with no matches.)
-    if not response.get("results"):
-        return {"matched_city": None}
-
-    matched_city = response["results"][0]["name"]
-    matched_country = response["results"][0]["country"]
-    lat = response["results"][0]["latitude"]
-    lon = response["results"][0]["longitude"]
-
-    weather_url = (
-        f"https://api.open-meteo.com/v1/forecast?"
-        f"latitude={lat}&longitude={lon}"
-        f"&current=temperature,apparent_temperature,weather_code"
-        f"&daily=temperature_2m_max,temperature_2m_min"
-    )
-
-    try:
-        weather_response = requests.get(weather_url, timeout=5).json()
-    except Exception as e:
-        print("DEBUG: weather request failed:", e)
-        return None
-
-    if weather_response.get("error"):
-        print("DEBUG: API returned error:", weather_response.get("reason"))
-        return None
-
-    current = weather_response.get("current")
-    daily = weather_response.get("daily")
-    if not current or not daily:
-        print("DEBUG: Missing current or daily weather data")
-        return None
-
-    data = {  # All in Celsius (minus condition)
-        "city": matched_city,
-        "country": matched_country,
-        "tempNow": current["temperature"],
-        "temp_max": daily["temperature_2m_max"][0],
-        "temp_min": daily["temperature_2m_min"][0],
-        "feels_like": current["apparent_temperature"],
-        "condition": current["weather_code"],
-    }
-    CACHE[city] = (data, now)
-    print("DEBUG: Cached new weather for", city)
-
-    return data
+# NOTE: get_weather() has been removed from this file. Weather lookups now
+# happen client-side in weather.js, straight from the browser to Open-Meteo,
+# so they're no longer exposed to Render's shared outbound IP. If you want to
+# keep a version around for reference/tests, keep it renamed (e.g. _unused_get_weather)
+# but make sure no Flask route still calls it — a reachable route calling it
+# would reopen the exact shared-IP exposure this was meant to close.
