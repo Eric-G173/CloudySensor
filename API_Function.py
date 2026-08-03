@@ -1,7 +1,10 @@
 import requests
 import time
 import threading
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 # ---------- Geocode cache ----------
 GEOCODE_CACHE = {}
 GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7  # 1 week — a location's city name doesn't change
@@ -11,8 +14,9 @@ _nominatim_lock = threading.Lock()
 _last_nominatim_call = 0
 MIN_INTERVAL = 1.1  # a bit over Nominatim's 1 req/sec cap, for safety margin
 
+NOMINATIM_CONTACT = os.getenv("NOMINATIM_CONTACT", "no-contact-set")
 NOMINATIM_HEADERS = {
-    "User-Agent": "CloudySensor/1.0 (contact: your-email@example.com)"  # put a real contact here
+    "User-Agent": f"CloudySensor/1.0 (contact: {NOMINATIM_CONTACT})"
 }
 
 
@@ -70,9 +74,6 @@ def reverse_geocode(lat, lon):
         return None
 
 
-# NOTE: get_weather() has been removed from this file. Weather lookups now
+# get_weather() has been removed from this file. Weather lookups now
 # happen client-side in weather.js, straight from the browser to Open-Meteo,
-# so they're no longer exposed to Render's shared outbound IP. If you want to
-# keep a version around for reference/tests, keep it renamed (e.g. _unused_get_weather)
-# but make sure no Flask route still calls it — a reachable route calling it
-# would reopen the exact shared-IP exposure this was meant to close.
+# so they're no longer exposed to Render's shared outbound IP.
