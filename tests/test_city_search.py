@@ -1,6 +1,6 @@
 from app import app
-from API_Function import reverse_geocode
-import API_Function
+from geoConversion import reverse_geocode
+import geoConversion
 
 
 def test_home_page():
@@ -29,7 +29,7 @@ def test_reverse_geocode_endpoint_invalid_params():
 def test_reverse_geocode_endpoint_valid(monkeypatch):
     client = app.test_client()
     # Patch the name as it exists in app.py's own namespace (see explanation above) —
-    # patching API_Function.reverse_geocode here would NOT affect the route.
+    # patching geoConversion.reverse_geocode here would NOT affect the route.
     monkeypatch.setattr("app.reverse_geocode", lambda lat, lon: "Phoenix")
 
     response = client.get("/reverse-geocode?lat=33.4&lon=-112.0")
@@ -59,8 +59,8 @@ def test_reverse_geocode_function(monkeypatch):
     def fake_get(url, params=None, headers=None, timeout=None):
         return FakeResponse()
 
-    monkeypatch.setattr("API_Function.requests.get", fake_get)
-    API_Function.GEOCODE_CACHE.clear()  # avoid a stale hit if another test used these coords
+    monkeypatch.setattr("geoConversion.requests.get", fake_get)
+    geoConversion.GEOCODE_CACHE.clear()  # avoid a stale hit if another test used these coords
 
     city = reverse_geocode(33.301, -112.002)
     assert city == "Phoenix"
