@@ -1,41 +1,57 @@
-# About the Project
+# CloudySensor
 
-CloudySensor was built to explore API integration, backend routing, and cloud deployment using modern Python web tools. The app provides real-time weather metrics for any city in the world, including remote regions, by combining accurate geolocation data with precise meteorological information.
+A full-stack weather app: search any city, or use your current location, and get live conditions and forecasts.
 
-The system works by converting a user’s city input (e.g., Phoenix, San Francisco) into latitude and longitude coordinates using the OpenStreetMap geocoding API. Those coordinates are then passed to the Open‑Meteo API, which returns detailed weather data for that exact location. The processed results are delivered to the frontend in clean JSON format and displayed through a responsive UI.
+Live demo: https://weather-website-fjzu.onrender.com/
 
-# Motivation
+<img width="679" height="862" alt="image" src="https://github.com/user-attachments/assets/105851f1-228f-4f65-bb72-1ea22c35403b" />
 
-CloudySensor represents my first fully built and deployed software project. As a sophomore/junior in college, I wanted to push myself beyond standard coursework and build something that required real API integration, backend logic, and cloud deployment. Weather data felt like the ideal starting point: simple to begin with yet flexible enough to expand into more complex challenges.
 
-Building CloudySensor taught me how to structure a Flask application, work with external APIs, handle geolocation data, and deploy a production-ready service. More importantly, it marked the point where I transitioned from learning concepts in class to applying them in a real, functioning application. This project is the foundation of my development journey and a milestone in becoming a more capable and confident engineer.
+# Features
+- Search weather by city name, or auto-detect location via the browser's Geolocation API
+- Current temperature, "feels like," daily high/low, and condition
+- Fahrenheit / Celsius toggle
+- Weather updates in place. no page reloads
 
-# Installation
-All other systems come pre-installed, the following has to be done manually:
-| Tool | Purpose | Why this choice | How to Install |
-|-------|-----|------------------|------------------|
-| Python | Backend Language | Python is lightweight, easy to read, and perfect for building small API-driven applications. As my first full project, Python allowed me to focus on learning backend fundamentals without unnecessary complexity | Install Python from python.org
-| Flask | Web Framework | Flask is minimal and flexible, making it ideal for learning backend architecture. It gave me full control over routing, API calls, and JSON responses without the overhead of larger frameworks | After cloning the repo, run: pip install -r requirements.txt
-| Gunicorn | Production WSGI server |Required for deploying Flask apps on Render. Provides stable performance and proper handling of concurrent requests |  run: pip install -r requirements.txt. **You do not have to run this command again if you already did pip install -r requirements.txt**
+# Tech stack
+- **Backend:** Python, Flask
+ - **Frontend:** JavaScript, HTML, CSS
+ - **APIs:** Open-Meteo (geocoding + forecast), Nominatim / OpenStreetMap (reverse geocoding)
+ - **Testing:** pytest
+- **CI/CD:** GitHub Actions → Render (push-to-deploy)
 
-## Live Deployment
-https://weather-website-fjzu.onrender.com/ 
+# Architecture: why API calls are split between frontend and backend
 
-## Features
-- Accurate weather data
-- Able to locate any city in the world
-- Fast temperature conversions
-- Continuous Deployment to Render via Deploy Hook
-- Continuous Integration via GitHub Actions to test new changes
+Earlier versions of this app made every API call from the Flask backend. In production on Render's free tier, that broke because Render shares outbound IP addresses across many unrelated customers in the same region, and Open-Meteo rate-limits by IP. The app got rate-limited by traffic that had nothing to do with it, before a single real visitor had loaded the page.
 
-## Tech Stack
-- Python
-- Flask
-- JavaScript
-- HTML
-- CSS
-- Gunicorn (Production Server)
-- Render (Deployment)
+The fix:
 
-Special thank you to open-meteo for providing their free API. Link for them: https://open-meteo.com/
+- Weather lookups (Open-Meteo) now happen entirely client-side, in weather.js. Each visitor's browser calls the API directly, using their own IP instead of Render's shared one, so the app is no longer exposed to other tenants' traffic on the same host.
+- Reverse geocoding (Nominatim) stays server-side, in geoConversion.py, since Nominatim's usage policy asks for server-side caching and doesn't reliably support direct browser calls. It's hardened instead: results are cached by rounded coordinates (1-week TTL), throttled to stay under Nominatim's 1-request/second limit, and sent with a real identifying User-Agent per their policy.
 
+# Running locally
+```
+bash
+git clone https://github.com/Eric-G173/Weather-Website.git
+cd Weather-Website
+python -m venv env
+source env/bin/activate      # Windows: env\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+Create a .env file in the project root:
+```
+SECRET_KEY=your-secret-key
+NOMINATIM_CONTACT=your-email@example.com
+```
+Then run:
+```
+bash
+python app.py
+```
+The app will be available at http://127.0.0.1:5000
+
+# Running tests
+```
+bash
+pytest
+```
