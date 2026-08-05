@@ -3,6 +3,7 @@ html, body {
   height: 80%;
   margin: 0;
   padding: 0;
+  font-family: "Poppins", sans-serif;
 }
 
 body {
@@ -11,11 +12,6 @@ body {
     background-position: center;
   background-repeat: no-repeat;
 
-}
-.weather-page {
-
-   display: flex;
-    justify-content: center;
 }
 
 .sr-only {
@@ -29,9 +25,6 @@ body {
     border: 0;
 }
 
-#useLocation {
-    margin-bottom: 10px;
-}
 
 .index-title {
   position: relative;
@@ -40,29 +33,31 @@ body {
   flex-direction: column;  
   align-items: center;         
   font-style: italic;
-  font-family: "Poppins", sans-serif;
   background: linear-gradient(180deg, #ffffff, #d7e8ff);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.55);
-  padding: 25vh 20px 0 20px;
+  padding: 0rem 20px 0rem 20px;
   letter-spacing: 1px;
     font-weight: 600;
   font-size: 1.5rem;
   
 }
 
+.index-title h1 {
+  margin: 0;
+}
+
 .button-group {
   display: flex;
   justify-content: center;
-  gap: 20px;
 }
 
 .city-form {
   padding-left: 10px;
-  margin-bottom: 40px;
+  margin-bottom: 10px;
   display: flex;
   gap: 15px; 
   justify-content: center;
@@ -78,7 +73,7 @@ body {
 
 .index-btn {
   padding: 12px 26px;
-  border-radius: 30px;
+  border-radius: 15px;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(6px);
   color: white;
@@ -99,8 +94,8 @@ body {
 .weather-city {
     font-size: 2.5rem;
     font-weight: 600;
-    margin-top: 45px;
-    margin-bottom: 5px;
+    margin-top: 25px;
+    margin-bottom: 0px;
    text-align: center;
 }
 
@@ -115,7 +110,7 @@ body {
     font-size: 1.2rem;
     opacity: 0.85;
    text-align: center;
-    margin-top: -90px;
+    margin-bottom: 10px;
 }
 
 .temp-scale {
@@ -139,14 +134,23 @@ position: relative;
 
 #temp-scale-display {
   text-align: center;
-    font-weight: 500;
-    opacity: 0.9;
-    margin-top: -140px;
-    font-size: 60px;
-    margin-left: 35px;
-    
+  font-weight: 500;
+  opacity: 0.9;
+  font-size: 60px;
 }
+.upper-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;          /* centers the container itself, horizontally */
+  padding: 2rem 1rem 1rem; /* keeps it near the top, with breathing room */
+  box-sizing: border-box;
 
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* centers each child horizontally within the container */
+  gap: 0.75rem;
+  text-align: center;       /* centers the button/label text itself */
+}
 button {
     transition: 0.2s ease;
 }
@@ -161,14 +165,36 @@ button.active {
     transform: scale(1.15);
 }
 
-#temp-scale-container button {
-  position: relative;
-    top: -120px;
-    left: 400px;
-}
 
 .weather-card {
-    text-align: center;
-    padding-top: 20px;
+     text-align: center;
+    padding-top: 0px;
+    padding-bottom: 50px;  /* keep whatever's currently fixing the earlier clipping */
+
+    width: 350px;
+    max-width: 90vw;
+    margin: 0 auto;
+
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);  /* needed for Safari */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
+#temp-Buttons button {
+  padding: 12px 26px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  color: white;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: transform 0.25s ease, background 0.25s ease;
+  cursor: pointer;
+}
+
+#temp {
+  margin: 0;
+}
