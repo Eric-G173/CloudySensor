@@ -65,10 +65,3 @@ def test_reverse_geocode_function(monkeypatch):
     city = reverse_geocode(33.301, -112.002)
     assert city == "Phoenix"
 
-
-# NOTE: There's no longer a Python-level test for the actual weather lookup
-# (temperature, high/low, condition) — that logic now lives entirely in
-# weather.js, running in the browser against Open-Meteo directly. pytest and
-# Flask's test client can't exercise that; it'd need a JS-side test tool
-# (e.g. Playwright or Jest) if you want automated coverage there. Not required
-# for a portfolio project, just flagging the gap rather than leaving it silent.
