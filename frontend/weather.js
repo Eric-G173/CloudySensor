@@ -1,3 +1,6 @@
+// NOTE: API_BASE_URL is defined by the inline <script> in index.html,
+// which loads before this file. Do not declare it again here.
+
 const weatherDescriptions = {
     0: "Clear sky",
     1: "Mainly clear",
@@ -41,7 +44,7 @@ const weatherDescriptions = {
 
 let currentScale = "F"; // Default
 
-// These now start at 0 and get filled in after the first successful search —
+// These start at 0 and get filled in after the first successful search —
 // there's no server-rendered data to read on page load anymore.
 let rawTemp = 0;
 let rawHigh = 0;
@@ -49,8 +52,9 @@ let rawLow = 0;
 let rawFeels = 0;
 let conditionCode = 0;
 
-function toF(c) { return c * (9/5) +32; }
-function toC(c) { return c }
+// Open-Meteo returns Celsius by default
+function toF(c) { return c * (9 / 5) + 32; }
+function toC(c) { return c; }
 
 function convert(c) {
     if (currentScale === "F") return toF(c);
@@ -68,16 +72,16 @@ function updateDisplay() {
         `Feels like: ${Math.round(convert(rawFeels))}°`;
 
     document.getElementById("condition").textContent =
-    weatherDescriptions[conditionCode] || "Unknown";
+        weatherDescriptions[conditionCode] || "Unknown";
 
     document.getElementById("temp-number").textContent =
-    Math.round(convert(rawTemp));
+        Math.round(convert(rawTemp));
 
-document.querySelector(".temp-scale").textContent =
-    `°${currentScale}`;
-
+    document.querySelector(".temp-scale").textContent =
+        `°${currentScale}`;
 }
 
+// Called from the F / C buttons via onclick in index.html
 function setScale(scale) {
     currentScale = scale;
     updateDisplay();
@@ -94,6 +98,21 @@ function validateCity(city) {
     if (/\d/.test(city)) return "City cannot contain numbers.";
     if (city.length > 100) return "City name too long.";
     return null;
+}
+
+// Retries while the backend wakes up from sleep. Real answers from the app
+// (including 400/404 errors) are returned immediately, not retried.
+async function fetchWithRetry(url, tries = 8, delayMs = 5000) {
+    for (let i = 0; i < tries; i++) {
+        try {
+            const res = await fetch(url);
+            if (res.status < 500) return res;
+        } catch (e) {
+            // network/CORS failure while the server is waking; try again
+        }
+        await new Promise(r => setTimeout(r, delayMs));
+    }
+    throw new Error("Server unreachable");
 }
 
 // ---------- Fetch weather for a typed city name ----------
@@ -120,11 +139,13 @@ async function fetchWeatherByCity(city) {
 
 // ---------- Fetch weather for known coordinates ----------
 async function fetchWeatherByCoords(lat, lon, displayName, displayCountry) {
+    document.getElementById("weather-error").textContent = "";
     try {
         const weatherRes = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-            `&current=temperature,apparent_temperature,weather_code` +
-            `&daily=temperature_2m_max,temperature_2m_min`
+            `&current=temperature_2m,apparent_temperature,weather_code` +
+            `&daily=temperature_2m_max,temperature_2m_min` +
+            `&timezone=auto`
         );
         const weatherData = await weatherRes.json();
 
@@ -134,7 +155,7 @@ async function fetchWeatherByCoords(lat, lon, displayName, displayCountry) {
         }
 
         const { current, daily } = weatherData;
-        rawTemp = current.temperature;
+        rawTemp = current.temperature_2m;
         rawHigh = daily.temperature_2m_max[0];
         rawLow = daily.temperature_2m_min[0];
         rawFeels = current.apparent_temperature;
@@ -164,6 +185,7 @@ document.getElementById("weather-form").addEventListener("submit", function (e) 
 });
 
 // ---------- "Use Current Location" ----------
+// Requires <button id="useLocation"> in index.html
 document.getElementById("useLocation").addEventListener("click", function (event) {
     event.preventDefault();
 
@@ -181,8 +203,10 @@ async function geoSuccess(position) {
 
     try {
         // The only step that still touches Flask: reverse-geocoding via Nominatim
-        // (cached + throttled server-side, as built earlier).
-        const res = await fetch(`/reverse-geocode?lat=${lat}&lon=${lon}`);
+        // (cached + throttled server-side). Retries while the backend wakes up.
+        const res = await fetchWithRetry(
+            `${API_BASE_URL}/reverse-geocode?lat=${lat}&lon=${lon}`
+        );
         const data = await res.json();
 
         if (data.error || !data.city) {

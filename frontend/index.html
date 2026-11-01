@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudySensor</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -50,36 +50,27 @@
 
     <p class="weather-condition" id="condition"></p>
 </div>
-<div id="status">Waking up the server… this can take up to a minute.</div>
-<div id="content" hidden></div>
+<div id="status" hidden>Waking up the server… this can take up to a minute.</div>
 
 <script>
-  const API_BASE_URL = "https://YOUR-BACKEND.onrender.com"; // your Web Service URL, no trailing slash
+  const API_BASE_URL = "https://weather-website-fjzu.onrender.com";
 
-  function render(data) {
-    const el = document.getElementById("content");
-    el.textContent = JSON.stringify(data); // replace with your real display code
-    el.hidden = false;
-  }
-
-  async function load() {
+  // Wake the backend as soon as the page opens
+  (async function wake() {
     const status = document.getElementById("status");
-    for (let attempt = 0; attempt < 8; attempt++) {
+    const showTimer = setTimeout(() => { status.hidden = false; }, 1500);
+    for (let i = 0; i < 8; i++) {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/data`);
-        if (!res.ok) throw new Error(res.status);
-        render(await res.json());
-        status.hidden = true;
-        return;
-      } catch (err) {
-        await new Promise(r => setTimeout(r, 5000)); // wait and retry while it wakes
-      }
+        const res = await fetch(`${API_BASE_URL}/health`);
+        if (res.ok) { clearTimeout(showTimer); status.hidden = true; return; }
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 5000));
     }
+    clearTimeout(showTimer);
+    status.hidden = false;
     status.textContent = "Couldn't reach the server. Try refreshing.";
-  }
-
-  load();
+  })();
 </script>
-<script src="{{ url_for('static', filename='weather.js') }}"></script>
+<script src="weather.js"></script>
 </body>
 </html>

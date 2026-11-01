@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from geoConversion import reverse_geocode
 from dotenv import load_dotenv
@@ -11,18 +11,10 @@ app.secret_key = os.getenv("SECRET_KEY", "test_key")  # Test key used as fallbac
 CORS(app, origins=[os.environ.get("FRONTEND_URL", "http://localhost:5500")])
 
 
-@app.route("/")
-def home():
-    return render_template("index.html")
 
 @app.route("/health")
 def health():
     return "ok", 200
-
-@app.route("/api/data")
-def data():
-    # return whatever you currently pass into render_template
-    return jsonify({"example": 123})
 
 @app.route("/reverse-geocode")
 def reverse_geocode_endpoint():
