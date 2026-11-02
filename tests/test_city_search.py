@@ -3,11 +3,11 @@ from geoConversion import reverse_geocode
 import geoConversion
 
 
-def test_home_page():
+def test_health():
     client = app.test_client()
-    response = client.get("/")
+    response = client.get("/health")
     assert response.status_code == 200
-    assert b"CloudySensor" in response.data
+    assert response.data == b"ok"
 
 
 def test_reverse_geocode_endpoint_missing_params():
