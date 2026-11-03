@@ -2,7 +2,7 @@
 
 A full-stack weather app: search any city, or use your current location, and get live conditions and forecasts.
 
-Live demo: https://weather-website-fjzu.onrender.com/
+Live demo: https://cloudysensor-1.onrender.com
 
 <img width="679" height="862" alt="image" src="https://github.com/user-attachments/assets/105851f1-228f-4f65-bb72-1ea22c35403b" />
 
